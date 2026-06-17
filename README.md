@@ -2,7 +2,11 @@ English | [中文](README.zh-CN.md)
 
 # Codex Quota Viewer
 
-> Stable release: `1.2.0`
+> Stable release: `1.2.1`
+>
+> 1.2.1 update:
+> - API access now keeps `model_provider = "openai"`, so ChatGPT logins and API logins share the same session history.
+> - Switching back to a ChatGPT login clears API-only overrides such as `openai_base_url` and `forced_login_method = "api"`.
 >
 > 1.2.0 update:
 > - Adds **third-party Provider mode** for ChatGPT logins, so Codex can stay signed in with the normal ChatGPT account while requests use a saved API account.

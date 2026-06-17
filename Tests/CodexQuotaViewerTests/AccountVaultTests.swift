@@ -22,11 +22,11 @@ func vaultAccountStoreCreatesAPIAccountAndPersistsIndex() throws {
     #expect(try record.runtimeMaterial.authData.utf8String().contains("\"OPENAI_API_KEY\":\"sk-test-1234\""))
     let configData = try #require(record.runtimeMaterial.configData)
     let configText = try configData.utf8String()
-    #expect(configText.contains("model_provider = \"custom\""))
-    #expect(configText.contains("[model_providers.custom]"))
-    #expect(configText.contains("wire_api = \"responses\""))
-    #expect(configText.contains("requires_openai_auth = true"))
-    #expect(configText.contains("base_url = \"https://shell.wyzai.top/v1\""))
+    #expect(configText.contains("model_provider = \"openai\""))
+    #expect(configText.contains("openai_base_url = \"https://shell.wyzai.top/v1\""))
+    #expect(configText.contains("forced_login_method = \"api\""))
+    #expect(configText.contains("cli_auth_credentials_store = \"file\""))
+    #expect(configText.contains("[model_providers.custom]") == false)
     #expect(FileManager.default.fileExists(atPath: vault.indexURL.path))
 }
 
@@ -239,7 +239,7 @@ func vaultNormalizationPlanMergesLegacyAndCurrentRuntimeDuplicates() throws {
 }
 
 @Test
-func vaultNormalizationPlanRewritesLegacyOpenAICompatibleAPIConfigToWorkingCustomProviderShape() throws {
+func vaultNormalizationPlanRewritesLegacyOpenAICompatibleAPIConfigToBuiltInOpenAIShape() throws {
     let harness = try makeHarness()
     let vault = makeVaultStore(harness)
 
@@ -268,11 +268,11 @@ func vaultNormalizationPlanRewritesLegacyOpenAICompatibleAPIConfigToWorkingCusto
     let configText = try configData.utf8String()
 
     #expect(snapshot.accounts.count == 1)
-    #expect(configText.contains("model_provider = \"custom\""))
-    #expect(configText.contains("[model_providers.custom]"))
-    #expect(configText.contains("wire_api = \"responses\""))
-    #expect(configText.contains("requires_openai_auth = true"))
-    #expect(configText.contains("base_url = \"https://shell.wyzai.top/v1\""))
+    #expect(configText.contains("model_provider = \"openai\""))
+    #expect(configText.contains("openai_base_url = \"https://shell.wyzai.top/v1\""))
+    #expect(configText.contains("forced_login_method = \"api\""))
+    #expect(configText.contains("cli_auth_credentials_store = \"file\""))
+    #expect(configText.contains("[model_providers.custom]") == false)
 }
 
 @MainActor
@@ -308,7 +308,7 @@ func accountOnboardingCoordinatorImportsChatGPTLoginFromTemporaryCodexHome() asy
 
 @MainActor
 @Test
-func accountOnboardingCoordinatorCreatesOpenAICompatibleAPIAccountWithCustomProviderConfig() async throws {
+func accountOnboardingCoordinatorCreatesOpenAICompatibleAPIAccountWithBuiltInOpenAIConfig() async throws {
     let harness = try makeHarness()
     let vault = makeVaultStore(harness)
     let coordinator = AccountOnboardingCoordinator(
@@ -332,11 +332,11 @@ func accountOnboardingCoordinatorCreatesOpenAICompatibleAPIAccountWithCustomProv
 
     #expect(result.record.metadata.authMode == .apiKey)
     #expect(result.record.metadata.source == .manualAPI)
-    #expect(configText.contains("model_provider = \"custom\""))
-    #expect(configText.contains("[model_providers.custom]"))
-    #expect(configText.contains("wire_api = \"responses\""))
-    #expect(configText.contains("requires_openai_auth = true"))
-    #expect(configText.contains("base_url = \"https://shell.wyzai.top/v1\""))
+    #expect(configText.contains("model_provider = \"openai\""))
+    #expect(configText.contains("openai_base_url = \"https://shell.wyzai.top/v1\""))
+    #expect(configText.contains("forced_login_method = \"api\""))
+    #expect(configText.contains("cli_auth_credentials_store = \"file\""))
+    #expect(configText.contains("[model_providers.custom]") == false)
     #expect(configText.contains("model = \"gpt-5.4\""))
 }
 

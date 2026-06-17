@@ -44,6 +44,44 @@ func mergeRuntimeConfigPreservesUserSettingsAndReplacesProviderBlocks() throws {
     }
 
 @Test
+func mergeRuntimeConfigRemovesAPIOverridesWhenSwitchingBackToChatGPTOpenAI() throws {
+        let current = """
+        personality = "pragmatic"
+        model_provider = "openai"
+        model = "gpt-5.4"
+        openai_base_url = "https://beeapi.ai/v1"
+        forced_login_method = "api"
+        cli_auth_credentials_store = "file"
+
+        [model_providers.custom]
+        name = "custom"
+        base_url = "https://beeapi.ai/v1"
+        wire_api = "responses"
+        requires_openai_auth = true
+        """
+
+        let target = """
+        model_provider = "openai"
+        model = "gpt-5.4"
+        """
+
+        let merged = try mergeRuntimeConfig(
+            currentConfigData: Data(current.utf8),
+            targetConfigData: Data(target.utf8)
+        )
+
+        let text = try merged.utf8String()
+        #expect(text.contains("personality = \"pragmatic\""))
+        #expect(text.contains("model_provider = \"openai\""))
+        #expect(text.contains("model = \"gpt-5.4\""))
+        #expect(text.contains("openai_base_url") == false)
+        #expect(text.contains("forced_login_method") == false)
+        #expect(text.contains("cli_auth_credentials_store") == false)
+        #expect(text.contains("[model_providers.custom]") == false)
+        #expect(text.contains("https://beeapi.ai/v1") == false)
+    }
+
+@Test
 func buildProviderProfileCanonicalizesOpenAICompatibleAPIProfileToOpenAI() throws {
         let runtime = ProfileRuntimeMaterial(
             authData: Data(#"{"OPENAI_API_KEY":"sk-test"}"#.utf8),
@@ -74,7 +112,7 @@ func buildProviderProfileCanonicalizesOpenAICompatibleAPIProfileToOpenAI() throw
 
         #expect(profile.authMode == .apiKey)
         #expect(profile.providerID == "openai")
-        #expect(profile.threadProviderID == "custom")
+        #expect(profile.threadProviderID == "openai")
         #expect(profile.baseURLHost == "shell.wyzai.top")
     }
 
@@ -633,7 +671,7 @@ func switchOrchestratorRecomputesRolloutPreviewAfterClosingCodex() async throws 
 
 @MainActor
 @Test
-func switchOrchestratorPreservesWorkingOpenAICompatibleAPIConfigBeforeSwitch() async throws {
+func switchOrchestratorRewritesOpenAICompatibleAPIConfigToBuiltInOpenAIBeforeSwitch() async throws {
         let harness = try makeHarness()
         try seedCurrentRuntime(in: harness, provider: "openai")
         let rolloutURL = try writeRollout(
@@ -685,14 +723,16 @@ func switchOrchestratorPreservesWorkingOpenAICompatibleAPIConfigBeforeSwitch() a
             contentsOf: harness.codexHomeURL.appendingPathComponent("config.toml")
         ).utf8String()
 
-        #expect(result.updatedRolloutCount == 1)
+        #expect(result.updatedRolloutCount == 0)
         #expect(repairer.invocationCount == 1)
-        #expect(try readSessionMetaProvider(from: rolloutURL) == "custom")
-        #expect(mergedConfig.contains("model_provider = \"custom\""))
-        #expect(mergedConfig.contains("[model_providers.custom]"))
-        #expect(mergedConfig.contains("wire_api = \"responses\""))
-        #expect(mergedConfig.contains("requires_openai_auth = true"))
-        #expect(mergedConfig.contains("base_url = \"https://shell.wyzai.top/v1\""))
+        #expect(try readSessionMetaProvider(from: rolloutURL) == "openai")
+        #expect(mergedConfig.contains("model_provider = \"openai\""))
+        #expect(mergedConfig.contains("openai_base_url = \"https://shell.wyzai.top/v1\""))
+        #expect(mergedConfig.contains("forced_login_method = \"api\""))
+        #expect(mergedConfig.contains("cli_auth_credentials_store = \"file\""))
+        #expect(mergedConfig.contains("[model_providers.custom]") == false)
+        #expect(mergedConfig.contains("[model_providers.openai]") == false)
+        #expect(mergedConfig.contains("https://legacy.example.com/v1") == false)
         #expect(mergedConfig.contains("model = \"gpt-5.4\""))
     }
 

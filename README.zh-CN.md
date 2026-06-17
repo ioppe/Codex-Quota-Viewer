@@ -2,7 +2,11 @@
 
 # Codex Quota Viewer
 
-> 当前正式版：`1.2.0`
+> 当前正式版：`1.2.1`
+>
+> 1.2.1 更新：
+> - API 访问保持 `model_provider = "openai"`，让 ChatGPT 登录和 API 登录共用同一组会话记录。
+> - 从 API 账号切回 ChatGPT 登录时，会清理 `openai_base_url`、`forced_login_method = "api"` 等 API 专用覆盖配置。
 >
 > 1.2.0 更新：
 > - 新增 **第三方 Provider 模式**：Codex 保持普通 ChatGPT 账号登录，但实际请求使用已保存的 API 账号。

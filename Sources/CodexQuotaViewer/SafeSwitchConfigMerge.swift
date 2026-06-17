@@ -26,16 +26,28 @@ func mergeRuntimeConfig(
 
     let targetRootKeys = Set(target.rootLines.compactMap(tomlAssignmentKey(from:)))
     let targetSectionNames = Set(target.sections.map(\.name))
+    let targetProviderID = target.rootAssignmentValue(forKey: "model_provider")?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    let targetUsesBuiltInOpenAI = targetProviderID == "openai"
 
     let filteredCurrentRoot = current.rootLines.filter { line in
         guard let key = tomlAssignmentKey(from: line) else {
             return true
         }
+        if targetUsesBuiltInOpenAI,
+           staleOpenAICompatibleRootKeys.contains(key),
+           !targetRootKeys.contains(key) {
+            return false
+        }
         return key != "model_provider" && !targetRootKeys.contains(key)
     }
 
     let filteredCurrentSections = current.sections.filter { section in
-        !targetSectionNames.contains(section.name)
+        if targetUsesBuiltInOpenAI,
+           staleOpenAICompatibleProviderSections.contains(section.name) {
+            return false
+        }
+        return !targetSectionNames.contains(section.name)
     }
 
     var outputLines: [String] = []
@@ -53,6 +65,19 @@ func mergeRuntimeConfig(
     let joined = trimBlankLines(outputLines).joined(separator: "\n")
     return Data((joined.isEmpty ? "" : joined + "\n").utf8)
 }
+
+private let staleOpenAICompatibleRootKeys: Set<String> = [
+    "base_url",
+    "openai_base_url",
+    "forced_login_method",
+    "cli_auth_credentials_store",
+]
+
+private let staleOpenAICompatibleProviderSections: Set<String> = [
+    "model_providers.custom",
+    "model_providers.OpenAI",
+    "model_providers.openai",
+]
 
 private func append(lines: [String], to output: inout [String]) {
     let trimmedLines = trimBlankLines(lines)

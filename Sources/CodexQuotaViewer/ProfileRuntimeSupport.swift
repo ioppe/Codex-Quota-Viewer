@@ -219,7 +219,8 @@ func parseRuntimeConfig(_ configData: Data?) -> RuntimeConfigSummary {
 
     var summary = RuntimeConfigSummary()
     let rawProviderID = document.rootAssignmentValue(forKey: "model_provider")
-    let rootBaseURL = document.rootAssignmentValue(forKey: "base_url")
+    let rootOpenAIBaseURL = document.rootAssignmentValue(forKey: "openai_base_url")
+    let rootBaseURL = rootOpenAIBaseURL ?? document.rootAssignmentValue(forKey: "base_url")
     let section = rawProviderID.flatMap {
         document.section(named: "model_providers.\($0)")
     }
@@ -237,6 +238,12 @@ func parseRuntimeConfig(_ configData: Data?) -> RuntimeConfigSummary {
         summary.providerID = "openai"
         summary.providerName = "openai"
         summary.baseURL = sectionBaseURL ?? rootBaseURL
+        summary.usesOpenAICompatibilityProvider = true
+    }
+
+    if rawProviderID == "openai",
+       rootBaseURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+        summary.providerName = "openai"
         summary.usesOpenAICompatibilityProvider = true
     }
 
@@ -258,21 +265,18 @@ func synthesizedOpenAICompatibleConfig(
     let normalizedModel = model?
         .trimmingCharacters(in: .whitespacesAndNewlines)
 
-    var lines = ["model_provider = \"custom\""]
+    var lines = ["model_provider = \"openai\""]
     if let normalizedModel,
        !normalizedModel.isEmpty {
         lines.append("model = \"\(escapedTOMLString(normalizedModel))\"")
     }
 
-    lines.append("")
-    lines.append("[model_providers.custom]")
-    lines.append("name = \"custom\"")
-    lines.append("wire_api = \"responses\"")
-    lines.append("requires_openai_auth = true")
     if let normalizedBaseURL,
        !normalizedBaseURL.isEmpty {
-        lines.append("base_url = \"\(escapedTOMLString(normalizedBaseURL))\"")
+        lines.append("openai_base_url = \"\(escapedTOMLString(normalizedBaseURL))\"")
     }
+    lines.append("forced_login_method = \"api\"")
+    lines.append("cli_auth_credentials_store = \"file\"")
 
     return Data((lines.joined(separator: "\n") + "\n").utf8)
 }
