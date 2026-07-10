@@ -19,6 +19,7 @@ final class AccountMenuRowView: NSView {
     private static let cardInset: CGFloat = 3
     private static let horizontalPadding: CGFloat = 12
     private static let quotaColumnWidth: CGFloat = 74
+    private static let secondaryResetColumnWidth: CGFloat = 96
     private static let quotaColumnSpacing: CGFloat = 8
 
     private let cardView = NSView()
@@ -171,15 +172,18 @@ final class AccountMenuRowView: NSView {
 
             secondaryResetField.trailingAnchor.constraint(equalTo: secondaryRemainingField.trailingAnchor),
             secondaryResetField.topAnchor.constraint(equalTo: secondaryRemainingField.bottomAnchor, constant: 4),
-            secondaryResetField.widthAnchor.constraint(equalTo: secondaryRemainingField.widthAnchor),
+            secondaryResetField.widthAnchor.constraint(equalToConstant: Self.secondaryResetColumnWidth),
 
-            primaryResetField.trailingAnchor.constraint(equalTo: primaryRemainingField.trailingAnchor),
+            primaryResetField.trailingAnchor.constraint(
+                equalTo: secondaryResetField.leadingAnchor,
+                constant: -Self.quotaColumnSpacing
+            ),
             primaryResetField.topAnchor.constraint(equalTo: secondaryResetField.topAnchor),
             primaryResetField.widthAnchor.constraint(equalTo: primaryRemainingField.widthAnchor),
 
             nameField.leadingAnchor.constraint(equalTo: indicatorView.trailingAnchor, constant: 10),
             nameField.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 7),
-            nameField.trailingAnchor.constraint(lessThanOrEqualTo: primaryRemainingField.leadingAnchor, constant: -12),
+            nameField.trailingAnchor.constraint(lessThanOrEqualTo: primaryResetField.leadingAnchor, constant: -12),
         ])
     }
 

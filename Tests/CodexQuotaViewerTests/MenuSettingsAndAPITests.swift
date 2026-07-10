@@ -390,15 +390,19 @@ func quotaOverviewMenuRowsUseCustomViewAndShowDualQuotaColumns() throws {
         timeFormatter.locale = AppLocalization.locale
         timeFormatter.dateFormat = "HH:mm"
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = AppLocalization.locale
-        dateFormatter.setLocalizedDateFormatFromTemplate("MMM d")
+        let dateTimeFormatter = DateFormatter()
+        dateTimeFormatter.locale = AppLocalization.locale
+        dateTimeFormatter.dateFormat = "M/d HH:mm"
+        let weeklyResetText = "1w \(dateTimeFormatter.string(from: Date(timeIntervalSince1970: 1_800_086_400)))"
 
         #expect(findLabel(in: rowView) { $0 == "current@example.com" } != nil)
         #expect(findLabel(in: rowView) { $0 == "5h 81%" } != nil)
         #expect(findLabel(in: rowView) { $0 == "1w 79%" } != nil)
         #expect(findLabel(in: rowView) { $0 == "5h \(timeFormatter.string(from: Date(timeIntervalSince1970: 1_800_000_360)))" } != nil)
-        #expect(findLabel(in: rowView) { $0 == "1w \(dateFormatter.string(from: Date(timeIntervalSince1970: 1_800_086_400)))" } != nil)
+        let weeklyResetField = try #require(findLabel(in: rowView) { $0 == weeklyResetText })
+        rowView.frame = NSRect(x: 0, y: 0, width: AccountMenuRowView.minimumWidth, height: AccountMenuRowView.height)
+        rowView.layoutSubtreeIfNeeded()
+        #expect(weeklyResetField.frame.width >= ceil(weeklyResetField.attributedStringValue.size().width))
         #expect((rowView.accessibilityLabel() ?? "").contains("Current account"))
         #expect(quotaOverviewEmptyStateMessage(for: state).contains("API accounts"))
     }
@@ -462,13 +466,13 @@ func quotaOverviewMenuRowsPadWeeklyOnlyAccountsWithFiveHourPlaceholder() throws 
         )
         let rowView = try #require(items.first?.view as? AccountMenuRowView)
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = AppLocalization.locale
-        dateFormatter.setLocalizedDateFormatFromTemplate("MMM d")
+        let dateTimeFormatter = DateFormatter()
+        dateTimeFormatter.locale = AppLocalization.locale
+        dateTimeFormatter.dateFormat = "M/d HH:mm"
 
         #expect(findLabel(in: rowView) { $0 == "5h -" } != nil)
         #expect(findLabel(in: rowView) { $0 == "1w 63%" } != nil)
-        #expect(findLabel(in: rowView) { $0 == "1w \(dateFormatter.string(from: Date(timeIntervalSince1970: 1_800_086_400)))" } != nil)
+        #expect(findLabel(in: rowView) { $0 == "1w \(dateTimeFormatter.string(from: Date(timeIntervalSince1970: 1_800_086_400)))" } != nil)
     }
 }
 

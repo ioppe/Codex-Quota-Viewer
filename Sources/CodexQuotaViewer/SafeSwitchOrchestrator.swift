@@ -21,6 +21,7 @@ struct SwitchOperationResult: Equatable {
     let restorePoint: RestorePointManifest
     let updatedRolloutCount: Int
     let repairSummary: OfficialRepairSummary
+    let repairWarningMessage: String?
 }
 
 struct RepairOperationResult: Equatable {
@@ -131,7 +132,7 @@ final class SwitchOrchestrator {
                 targetProvider: latestPreview.targetProviderID,
                 writer: writer
             )
-            let repairSummary = try await repairClient.rescanAndRepair()
+            let (repairSummary, repairWarningMessage) = await repairAfterSwitchIfPossible()
             await quotaChannelInvalidator.invalidateAllReusableChannels()
             try await desktopController.reopenIfNeeded(previouslyRunning: previouslyRunning)
 
@@ -139,7 +140,8 @@ final class SwitchOrchestrator {
                 targetProfileID: targetProfile.id,
                 restorePoint: createdRestorePoint,
                 updatedRolloutCount: rolloutResult.updatedFiles.count,
-                repairSummary: repairSummary
+                repairSummary: repairSummary,
+                repairWarningMessage: repairWarningMessage
             )
         } catch {
             if let restorePoint {
@@ -239,6 +241,33 @@ final class SwitchOrchestrator {
 
         throw SwitchOrchestratorError.missingProviderIdentifier(targetProfile.displayName)
     }
+
+    private func repairAfterSwitchIfPossible() async -> (OfficialRepairSummary, String?) {
+        do {
+            return (try await repairClient.rescanAndRepair(), nil)
+        } catch {
+            AppLog.safeSwitch.warning(
+                "Post-switch thread repair did not finish: \(error.localizedDescription, privacy: .public)"
+            )
+            return (
+                emptyOfficialRepairSummary(),
+                AppLocalization.localized(
+                    en: "Local thread repair did not finish. Use “Repair Local Threads” later if needed.",
+                    zh: "本地线程元数据修复未完成。如有需要，请稍后使用“修复本地线程”。"
+                )
+            )
+        }
+    }
+}
+
+func emptyOfficialRepairSummary() -> OfficialRepairSummary {
+    OfficialRepairSummary(
+        createdThreads: 0,
+        updatedThreads: 0,
+        updatedSessionIndexEntries: 0,
+        removedBrokenThreads: 0,
+        hiddenSnapshotOnlySessions: 0
+    )
 }
 
 @MainActor

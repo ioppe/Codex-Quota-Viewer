@@ -1012,13 +1012,16 @@ func exhaustedAccountMenuTextShowsResetScheduleInsteadOfPercentages() {
         timeFormatter.locale = AppLocalization.locale
         timeFormatter.dateFormat = "HH:mm"
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = AppLocalization.locale
-        dateFormatter.setLocalizedDateFormatFromTemplate("MMM d")
+        let dateTimeFormatter = DateFormatter()
+        dateTimeFormatter.locale = AppLocalization.locale
+        dateTimeFormatter.dateFormat = "M/d HH:mm"
 
         #expect(text.contains("5h \(timeFormatter.string(from: Date(timeIntervalSince1970: 1_800_000_360)))"))
-        #expect(text.contains("1w \(dateFormatter.string(from: Date(timeIntervalSince1970: 1_800_086_400)))"))
+        #expect(text.contains("1w \(dateTimeFormatter.string(from: Date(timeIntervalSince1970: 1_800_086_400)))"))
         #expect(text.contains("5h 0%") == false)
+
+        let quotaTexts = quotaOverviewRowQuotaTexts(for: exhausted)
+        #expect(quotaTexts.secondaryResetText == "1w \(dateTimeFormatter.string(from: Date(timeIntervalSince1970: 1_800_086_400)))")
     }
 }
 

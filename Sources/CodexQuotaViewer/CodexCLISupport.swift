@@ -12,6 +12,7 @@ struct CodexCLIConfiguration: Equatable {
 func resolveCodexCLIConfiguration(
     preferredExecutableURL: URL? = nil,
     bundledExecutableURL: URL = URL(fileURLWithPath: "/Applications/Codex.app/Contents/Resources/codex"),
+    fallbackExecutableURLs: [URL] = defaultCodexExecutableURLs(),
     fileManager: FileManager = .default,
     environment: [String: String] = ProcessInfo.processInfo.environment
 ) -> CodexCLIConfiguration? {
@@ -34,7 +35,20 @@ func resolveCodexCLIConfiguration(
         )
     }
 
+    for candidateURL in fallbackExecutableURLs {
+        if fileManager.isExecutableFile(atPath: candidateURL.path) {
+            return CodexCLIConfiguration(executableURL: candidateURL, argumentsPrefix: [])
+        }
+    }
+
     return nil
+}
+
+private func defaultCodexExecutableURLs() -> [URL] {
+    [
+        URL(fileURLWithPath: "/opt/homebrew/bin/codex", isDirectory: false),
+        URL(fileURLWithPath: "/usr/local/bin/codex", isDirectory: false),
+    ]
 }
 
 private func codexExecutableURLInPATH(

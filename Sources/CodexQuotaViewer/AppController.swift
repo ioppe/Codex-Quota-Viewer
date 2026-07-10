@@ -995,15 +995,16 @@ final class AppController: NSObject, NSMenuDelegate {
             do {
                 let result = try await self.chatGPTProviderModeManager.enter(providerRecord: selectedRecord)
                 self.chatGPTProviderModeState = try? self.chatGPTProviderModeManager.currentModeState()
+                let message = AppLocalization.localized(
+                    en: "Third-party Provider enabled: \(result.providerDisplayName). Restore point \(result.restorePoint.id) is ready.",
+                    zh: "已切换为第三方 Provider：\(result.providerDisplayName)。还原点 \(result.restorePoint.id) 已创建。"
+                ) + (result.repairWarningMessage.map { " \($0)" } ?? "")
                 self.presentSafeSwitchNotice(
                     MenuNotice(
-                        kind: .info,
-                        message: AppLocalization.localized(
-                            en: "Third-party Provider enabled: \(result.providerDisplayName). Restore point \(result.restorePoint.id) is ready.",
-                            zh: "已切换为第三方 Provider：\(result.providerDisplayName)。还原点 \(result.restorePoint.id) 已创建。"
-                        )
+                        kind: result.repairWarningMessage == nil ? .info : .warning,
+                        message: message
                     ),
-                    lifetime: .timed(4)
+                    lifetime: .timed(result.repairWarningMessage == nil ? 4 : 8)
                 )
                 self.cachedThreadSyncStatus = .healthy(expectedProvider: "OpenAI")
             } catch {
@@ -1265,15 +1266,16 @@ final class AppController: NSObject, NSMenuDelegate {
                         )
                     }
                 }
+                let message = AppLocalization.localized(
+                    en: "Switched to \(targetProfile.displayName). Restore point \(result.restorePoint.id) is ready.",
+                    zh: "已切换到 \(targetProfile.displayName)。还原点 \(result.restorePoint.id) 已创建。"
+                ) + (result.repairWarningMessage.map { " \($0)" } ?? "")
                 self.presentSafeSwitchNotice(
                     MenuNotice(
-                        kind: .info,
-                        message: AppLocalization.localized(
-                            en: "Switched to \(targetProfile.displayName). Restore point \(result.restorePoint.id) is ready.",
-                            zh: "已切换到 \(targetProfile.displayName)。还原点 \(result.restorePoint.id) 已创建。"
-                        )
+                        kind: result.repairWarningMessage == nil ? .info : .warning,
+                        message: message
                     ),
-                    lifetime: .timed(4)
+                    lifetime: .timed(result.repairWarningMessage == nil ? 4 : 8)
                 )
                 AppLog.safeSwitch.info("Safe switch completed target=\(targetProfile.displayName, privacy: .public)")
                 self.cachedThreadSyncStatus = .healthy(

@@ -565,12 +565,12 @@ func switchOrchestratorAppliesRuntimeSynchronizesRolloutsAndRequestsRepair() asy
 
 @MainActor
 @Test
-func switchOrchestratorAutomaticallyRollsBackWhenRepairFailsAfterFilesChange() async throws {
+func switchOrchestratorCompletesWhenPostSwitchRepairFailsAfterFilesChange() async throws {
         let harness = try makeHarness()
         try seedCurrentRuntime(in: harness, provider: "legacy")
         let rolloutURL = try writeRollout(
             under: harness.codexHomeURL.appendingPathComponent("sessions", isDirectory: true),
-            id: "switch-rollback",
+            id: "switch-repair-warning",
             provider: "legacy"
         )
 
@@ -601,13 +601,14 @@ func switchOrchestratorAutomaticallyRollsBackWhenRepairFailsAfterFilesChange() a
             isCurrent: false
         )
 
-        await #expect(throws: NSError.self) {
-            _ = try await orchestrator.perform(targetProfile: target)
-        }
+        let result = try await orchestrator.perform(targetProfile: target)
 
         #expect(try Data(contentsOf: harness.codexHomeURL.appendingPathComponent("auth.json")).utf8String()
-            == "{\"auth_mode\":\"chatgpt\",\"last_refresh\":\"2026-03-31T00:00:00Z\"}")
-        #expect(try readSessionMetaProvider(from: rolloutURL) == "legacy")
+            == "{\"auth_mode\":\"chatgpt\",\"account_id\":\"next\"}")
+        #expect(try readSessionMetaProvider(from: rolloutURL) == "openai")
+        #expect(repairer.invocationCount == 1)
+        #expect(result.repairSummary == emptyOfficialRepairSummary())
+        #expect(result.repairWarningMessage != nil)
         #expect(desktop.reopenInvocationCount == 1)
     }
 

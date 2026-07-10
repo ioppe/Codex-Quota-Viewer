@@ -928,8 +928,8 @@ private func quotaOverviewRowResetText(label: String, window: RateLimitWindow?) 
     switch quotaResetDateStyle(for: window) {
     case .time:
         formatter.dateFormat = "HH:mm"
-    case .monthDay:
-        formatter.setLocalizedDateFormatFromTemplate("MMM d")
+    case .monthDayTime:
+        formatter.dateFormat = "M/d HH:mm"
     }
 
     return "\(label) \(formatter.string(from: date))"
@@ -953,13 +953,13 @@ private func quotaResetScheduleText(for profile: ProviderProfile) -> String {
 
 private enum QuotaResetDateStyle {
     case time
-    case monthDay
+    case monthDayTime
 }
 
 private func quotaResetDateStyle(for window: RateLimitWindow) -> QuotaResetDateStyle {
     if let duration = window.windowDurationMins,
        duration >= 1_440 {
-        return .monthDay
+        return .monthDayTime
     }
     return .time
 }
@@ -974,8 +974,8 @@ private func quotaResetText(window: RateLimitWindow?, label: String, style: Quot
     switch style {
     case .time:
         formatter.dateFormat = "HH:mm"
-    case .monthDay:
-        formatter.setLocalizedDateFormatFromTemplate("MMM d")
+    case .monthDayTime:
+        formatter.dateFormat = "M/d HH:mm"
     }
 
     return "\(label) \(formatter.string(from: date))"

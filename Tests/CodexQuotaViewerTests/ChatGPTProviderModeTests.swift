@@ -206,8 +206,55 @@ func chatGPTProviderModeEnterSynchronizesRolloutsAndRepairsOfficialThreads() asy
 
     #expect(result.updatedRolloutCount == 1)
     #expect(repairer.invocationCount == 1)
+    #expect(result.repairWarningMessage == nil)
     #expect(try readProviderModeRolloutProvider(from: rolloutURL) == "OpenAI")
     #expect(result.restorePoint.files.contains { $0.originalPath == rolloutURL.standardizedFileURL.path })
+}
+
+@MainActor
+@Test
+func chatGPTProviderModeEnterCompletesWhenPostSwitchRepairFails() async throws {
+    let harness = try makeHarness()
+    let store = ProfileStore(
+        baseURL: harness.appSupportURL,
+        currentAuthURL: harness.codexHomeURL.appendingPathComponent("auth.json"),
+        homeDirectoryOverride: harness.homeURL
+    )
+    try FileManager.default.createDirectory(at: harness.codexHomeURL, withIntermediateDirectories: true)
+    try Data(#"{"auth_mode":"chatgpt","tokens":{"access_token":"token-1","account_id":"acct-1"}}"#.utf8)
+        .write(to: store.currentAuthURL, options: .atomic)
+    try Data("model_provider = \"openai\"\n".utf8)
+        .write(to: store.currentConfigURL, options: .atomic)
+    let rolloutURL = try writeProviderModeRollout(
+        under: store.sessionsRootURL,
+        id: "provider-mode-repair-warning",
+        provider: "openai"
+    )
+
+    let repairer = ProviderModeRepairerSpy(error: NSError(domain: "ChatGPTProviderModeTests", code: 42))
+    let manager = ChatGPTProviderModeManager(
+        store: store,
+        backupManager: makeBackupManager(harness),
+        rolloutSynchronizer: RolloutProviderSynchronizer(),
+        repairClient: repairer,
+        desktopController: ProviderModeDesktopControllerSpy(isRunning: false),
+        quotaChannelInvalidator: ProviderModeChannelInvalidatorSpy()
+    )
+    let record = makeChatGPTProviderModeAPIRecord(
+        displayName: "Third Party",
+        apiKey: "sk-third-party",
+        baseURL: "https://proxy.example.com/v1",
+        model: "gpt-5.4"
+    )
+
+    let result = try await manager.enter(providerRecord: record)
+
+    #expect(result.updatedRolloutCount == 1)
+    #expect(result.repairSummary == emptyOfficialRepairSummary())
+    #expect(result.repairWarningMessage != nil)
+    #expect(repairer.invocationCount == 1)
+    #expect(try readProviderModeRolloutProvider(from: rolloutURL) == "OpenAI")
+    #expect(try manager.currentModeState() != nil)
 }
 
 @MainActor
@@ -411,9 +458,17 @@ private func readProviderModeRolloutProvider(from fileURL: URL) throws -> String
 @MainActor
 private final class ProviderModeRepairerSpy: OfficialThreadRepairing {
     private(set) var invocationCount = 0
+    private let error: Error?
+
+    init(error: Error? = nil) {
+        self.error = error
+    }
 
     func rescanAndRepair() async throws -> OfficialRepairSummary {
         invocationCount += 1
+        if let error {
+            throw error
+        }
         return OfficialRepairSummary(
             createdThreads: 0,
             updatedThreads: 1,

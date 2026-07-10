@@ -29,8 +29,6 @@ private struct OfficialRepairEnvelope: Decodable {
     let stats: OfficialRepairSummary
 }
 
-private struct EmptyResponse: Decodable {}
-
 @MainActor
 final class SessionManagerRepairClient: OfficialThreadRepairing {
     private let launcher: SessionManagerLauncher
@@ -46,7 +44,6 @@ final class SessionManagerRepairClient: OfficialThreadRepairing {
 
     func rescanAndRepair() async throws -> OfficialRepairSummary {
         _ = try await launcher.ensureServiceRunning()
-        let _: EmptyResponse = try await post(path: "/api/sessions/rescan")
         let envelope: OfficialRepairEnvelope = try await post(path: "/api/codex/repair")
         return envelope.stats
     }
